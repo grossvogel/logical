@@ -66,6 +66,17 @@ defmodule Logical do
       iex> ["-", "today", [180, "days"]] |> Logical.eval() |> is_struct(Date)
       true
 
+      iex> Logical.eval([">", ["+", 6, 5], ["-", 11, 2]])
+      true
+
+      iex> Logical.eval([">=", ["+", 6, 5], ["-", 13, 2]])
+      true
+
+      iex> Logical.eval(["<=", ["+", 6, 50], ["-", 13, 2]])
+      false
+
+      iex> Logical.eval(["=", ["+", 6, 50], ["-", 60, 4]])
+      true
   """
   @spec eval(expression()) :: result()
 
@@ -80,6 +91,27 @@ defmodule Logical do
   def eval([n, "minute" <> _]), do: {eval(n), :minute}
   def eval([n, "hour" <> _]), do: {eval(n), :hour}
   def eval([n, "day" <> _]), do: {eval(n), :day}
+
+  # comparisons
+  def eval([">", expression_a, expression_b]) do
+    compare(eval(expression_a), eval(expression_b)) == :gt
+  end
+
+  def eval(["<", expression_a, expression_b]) do
+    compare(eval(expression_a), eval(expression_b)) == :lt
+  end
+
+  def eval([">=", expression_a, expression_b]) do
+    compare(eval(expression_a), eval(expression_b)) in [:gt, :eq]
+  end
+
+  def eval(["<=", expression_a, expression_b]) do
+    compare(eval(expression_a), eval(expression_b)) in [:lt, :eq]
+  end
+
+  def eval(["=", expression_a, expression_b]) do
+    compare(eval(expression_a), eval(expression_b)) == :eq
+  end
 
   # arithmetic
   def eval(["+", expression_a]) do
@@ -106,6 +138,7 @@ defmodule Logical do
     divide(eval(expression_a), eval(expression_b))
   end
 
+  # arithmetic helpers
   defp add(a, b) when is_number(a) and is_number(b), do: a + b
 
   defp add(date_time, {amount, interval})
@@ -139,4 +172,11 @@ defmodule Logical do
   defp subtract({n, interval}, date_or_datetime)
        when is_struct(date_or_datetime, Date) or is_struct(date_or_datetime, NaiveDateTime),
        do: subtract(date_or_datetime, {n, interval})
+
+  # comparison helpers
+  defp compare(a, b) when a == b, do: :eq
+
+  defp compare(a, b) when a > b, do: :gt
+
+  defp compare(a, b) when a < b, do: :le
 end
